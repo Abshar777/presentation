@@ -9,7 +9,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(circle
 button{font:inherit;cursor:pointer}
 .progress{position:fixed;inset:0 0 auto 0;height:3px;background:#ffffff14;z-index:20}
 .progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .6s var(--ease)}
-.viewport{position:fixed;inset:0 0 60px 0}
+.viewport{position:fixed;inset:0}
 .stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform:translate(-50%,-50%) scale(var(--s,1));border-radius:10px;overflow:hidden;box-shadow:0 30px 90px #0009;background:var(--paper)}
 
 /* ---------- slide shell ---------- */
@@ -203,7 +203,8 @@ li:before{content:"";position:absolute;left:2px;top:17px;width:10px;height:2px;b
 .stop p{margin:0;font-size:18.5px;line-height:1.5;color:#33435f}
 
 /* ---------- chrome ---------- */
-.bar{position:fixed;left:0;right:0;bottom:0;height:60px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 22px;color:#cfd9ec;font-size:13px;z-index:10}
+.bar{position:fixed;left:0;right:0;bottom:0;height:84px;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;padding:0 22px 14px;color:#cfd9ec;font-size:13px;z-index:10;background:linear-gradient(to top,#07122ef5 35%,#07122e00);opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .25s ease,transform .35s var(--ease)}
+body.ui .bar,.bar:has(:focus-visible){opacity:1;transform:none;pointer-events:auto}
 .brand{font-weight:800;letter-spacing:.28em;color:#f4f7fc}.brand span{font-weight:600;letter-spacing:.2em;color:#8e9dbd;font-size:11px;margin-left:8px}
 .ctl{display:flex;align-items:center;gap:14px}
 #counter{min-width:74px;text-align:center;font-weight:700;letter-spacing:.08em;font-variant-numeric:tabular-nums}
@@ -682,7 +683,7 @@ const $=id=>document.getElementById(id);
 let idx=-1,auto=null,timer=null;
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function fit(){const w=innerWidth-28,h=innerHeight-60-22;stage.style.setProperty('--s',Math.min(w/1600,h/900))}
+function fit(){const w=innerWidth-28,h=innerHeight-22;stage.style.setProperty('--s',Math.min(w/1600,h/900))}
 addEventListener('resize',fit);fit();
 
 slides.forEach(s=>{
@@ -729,7 +730,7 @@ function full(){if(!document.fullscreenElement){document.documentElement.request
 function autoToggle(){if(auto){clearInterval(auto);auto=null;$('auto').textContent='▶ Auto'}else{auto=setInterval(next,9000);$('auto').textContent='Ⅱ Pause'}}
 
 $('next').onclick=next;$('prev').onclick=previous;$('full').onclick=full;$('auto').onclick=autoToggle;$('grid').onclick=overview;$('closeoverview').onclick=overview;
-stage.addEventListener('click',e=>{const r=stage.getBoundingClientRect();(e.clientX-r.left)/r.width<.25?previous():next()});
+stage.addEventListener('click',e=>{if(e.clientY>innerHeight-HOT)return;const r=stage.getBoundingClientRect();(e.clientX-r.left)/r.width<.25?previous():next()});
 document.addEventListener('keydown',e=>{
   if($('overview').classList.contains('open')){if(e.key==='Escape'||e.key.toLowerCase()==='o')overview();return}
   if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();next()}
@@ -739,6 +740,13 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Home')show(0);
   else if(e.key==='End')show(n-1);
 });
+/* controls stay hidden until the pointer reaches the bottom edge */
+const HOT=96,navbar=document.querySelector('.bar');let uiTimer=null;
+const ui=on=>document.body.classList.toggle('ui',on);
+document.addEventListener('mousemove',e=>ui(e.clientY>innerHeight-HOT||navbar.matches(':hover')));
+document.documentElement.addEventListener('mouseleave',()=>ui(false));
+navbar.addEventListener('click',e=>{if(e.detail>0&&document.activeElement)document.activeElement.blur()});
+document.addEventListener('touchstart',e=>{clearTimeout(uiTimer);if(e.changedTouches[0].clientY>innerHeight-HOT||e.target.closest('.bar')){ui(true);uiTimer=setTimeout(()=>ui(false),4000)}else ui(false)},{passive:true});
 let touchX=0;
 document.addEventListener('touchstart',e=>touchX=e.changedTouches[0].clientX,{passive:true});
 document.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-touchX;if(Math.abs(d)>70)d<0?next():previous()},{passive:true});
